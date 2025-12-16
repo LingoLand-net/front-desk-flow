@@ -15,12 +15,12 @@ import { EventType } from '@/types/database';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from 'date-fns';
 
 const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
-  { value: 'holiday', label: 'Holiday', color: 'bg-destructive/20 text-destructive' },
-  { value: 'extra_class', label: 'Extra Class', color: 'bg-secondary text-secondary-foreground' },
-  { value: 'rescheduled', label: 'Rescheduled', color: 'bg-primary/20 text-primary' },
-  { value: 'workshop', label: 'Workshop', color: 'bg-accent text-accent-foreground' },
-  { value: 'exam', label: 'Exam', color: 'bg-muted text-muted-foreground' },
-  { value: 'open_day', label: 'Open Day', color: 'bg-chart-1/20 text-chart-1' },
+  { value: 'holiday', label: 'Holiday', color: 'bg-green-500/50 text-destructive' },
+  { value: 'extra_class', label: 'Extra Class', color: 'bg-secondary/70 text-secondary-foreground' },
+  { value: 'rescheduled', label: 'Rescheduled', color: 'bg-primary/35 text-primary' },
+  { value: 'workshop', label: 'Workshop', color: 'bg-accent/70 text-accent-foreground' },
+  { value: 'exam', label: 'Exam', color: 'bg-red-500/50 text-foreground/85' },
+  { value: 'open_day', label: 'Open Day', color: 'bg-blue-200 text-chart-1' },
 ];
 
 export function EventsPanel() {
@@ -150,7 +150,7 @@ export function EventsPanel() {
         <CardContent>
           <div className="grid grid-cols-7 gap-1">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+              <div key={day} className="p-2 text-center text-sm font-medium text-foreground/70">
                 {day}
               </div>
             ))}
@@ -165,18 +165,19 @@ export function EventsPanel() {
                   onClick={() => handleDayClick(date)}
                   className={`
                     min-h-24 p-2 border rounded-lg cursor-pointer transition-colors
-                    ${isToday(date) ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'}
+                    bg-muted/40 hover:bg-muted/70 border-border/60
+                    ${isToday(date) ? 'bg-primary/20 border-primary/60' : ''}
                     ${!isSameMonth(date, currentMonth) ? 'opacity-50' : ''}
                   `}
                 >
-                  <div className={`text-sm font-medium ${isToday(date) ? 'text-primary' : ''}`}>
+                  <div className={`text-sm font-medium ${isToday(date) ? 'text-primary' : 'text-foreground/80'}`}>
                     {format(date, 'd')}
                   </div>
                   <div className="space-y-1 mt-1">
                     {dayEvents.slice(0, 2).map((event: any) => (
                       <div
                         key={event.id}
-                        className={`text-xs p-1 rounded truncate ${getEventColor(event.event_type)} cursor-pointer`}
+                        className={`text-xs p-1 rounded truncate ${getEventColor(event.event_type)} cursor-pointer ring-1 ring-border/40`}
                         onClick={(e) => {
                           e.stopPropagation();
                           // Open edit dialog prefilled
@@ -201,12 +202,15 @@ export function EventsPanel() {
                     ))}
                     {/* Active group schedules */}
                     {getGroupsForDay(date).slice(0, 2).map((g: any) => (
-                      <div key={`g-${g.id}`} className="text-[10px] px-1 py-0.5 rounded bg-secondary/20 text-secondary-foreground/90 truncate">
+                      <div
+                        key={`g-${g.id}`}
+                        className="text-[11px] px-1.5 py-0.5 rounded-md bg-secondary text-secondary-foreground truncate ring-1 ring-border/40"
+                      >
                         {g.name}{g.schedule_time ? ` @ ${g.schedule_time}` : ''}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-foreground/70">
                         +{dayEvents.length - 2} more
                       </div>
                     )}
@@ -231,14 +235,14 @@ export function EventsPanel() {
                 .filter((e: any) => new Date(e.event_date) >= new Date())
                 .slice(0, 10)
                 .map((event: any) => (
-                  <div key={event.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                  <div key={event.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/60 border border-border/60">
                     <div className="flex items-center gap-3">
                       <Badge className={getEventColor(event.event_type)}>
                         {EVENT_TYPES.find(t => t.value === event.event_type)?.label}
                       </Badge>
                       <div>
                         <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-foreground/75">
                           {format(new Date(event.event_date), 'PP')}
                           {event.start_time && ` at ${event.start_time}`}
                         </div>

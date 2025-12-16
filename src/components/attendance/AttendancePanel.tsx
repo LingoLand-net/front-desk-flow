@@ -15,6 +15,7 @@ export function AttendancePanel() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { groups } = useGroups();
   const { attendance, recordAttendance } = useAttendance(selectedGroupId, selectedDate);
+  const [bulkMarking, setBulkMarking] = useState(false);
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
   const groupStudents = selectedGroup?.students?.filter(sg => sg.is_active && !sg.student?.is_deleted) || [];
@@ -32,6 +33,31 @@ export function AttendancePanel() {
       status,
       reason,
     });
+  };
+
+  const handleMarkAll = async (status: AttendanceStatus) => {
+    if (!selectedGroupId || groupStudents.length === 0) return;
+    try {
+      setBulkMarking(true);
+      const tasks = groupStudents
+        .filter((sg: any) => {
+          const existing = getAttendanceForStudent(sg.student_id);
+          return existing?.status !== status; // skip if already same
+        })
+        .map((sg: any) =>
+          recordAttendance.mutateAsync({
+            student_id: sg.student_id,
+            group_id: selectedGroupId,
+            session_date: selectedDate,
+            status,
+          })
+        );
+      if (tasks.length > 0) {
+        await Promise.allSettled(tasks);
+      }
+    } finally {
+      setBulkMarking(false);
+    }
   };
 
   return (
@@ -64,10 +90,30 @@ export function AttendancePanel() {
       {selectedGroupId && selectedGroup && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{selectedGroup.name} - {format(new Date(selectedDate), 'PP')}</span>
-              <Badge variant="outline">{groupStudents.length} students</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <span>{selectedGroup.name} - {format(new Date(selectedDate), 'PP')}</span>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{groupStudents.length} students</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleMarkAll('present')}
+                  disabled={bulkMarking || recordAttendance.isPending || groupStudents.length === 0}
+                >
+                  Mark all present
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleMarkAll('absent')}
+                  disabled={bulkMarking || recordAttendance.isPending || groupStudents.length === 0}
+                >
+                  Mark all absent
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {groupStudents.length === 0 ? (

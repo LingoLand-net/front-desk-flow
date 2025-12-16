@@ -93,11 +93,18 @@ export function useGroups() {
 
   const deleteGroup = useMutation({
     mutationFn: async (id: string) => {
+      // Soft delete: mark group inactive and deactivate enrollments
       const { error } = await supabase
         .from('groups')
         .update({ is_active: false })
         .eq('id', id);
       if (error) throw error;
+
+      // Deactivate all student enrollments in this group
+      await supabase
+        .from('student_groups')
+        .update({ is_active: false })
+        .eq('group_id', id);
       
       await supabase.from('activity_logs').insert({
         action: 'Group deactivated',
@@ -107,10 +114,42 @@ export function useGroups() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({ title: 'Group deactivated successfully' });
     },
     onError: (error: Error) => {
       toast({ title: 'Error deactivating group', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const hardDeleteGroup = useMutation({
+    mutationFn: async (id: string) => {
+      // Hard delete: actually delete row to trigger DB cascades
+      const { error } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      await supabase.from('activity_logs').insert({
+        action: 'Group deleted',
+        entity_type: 'group',
+        entity_id: id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast({ title: 'Group deleted successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error deleting group', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -121,6 +160,7 @@ export function useGroups() {
     createGroup,
     updateGroup,
     deleteGroup,
+    hardDeleteGroup,
     refetch: groupsQuery.refetch,
   };
 }

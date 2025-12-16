@@ -5,17 +5,17 @@ import { useActivityLogs } from '@/hooks/useActivityLogs';
 import { format } from 'date-fns';
 
 const ACTION_COLORS: Record<string, string> = {
-  'Student created': 'bg-secondary',
-  'Student updated': 'bg-primary/20 text-primary',
-  'Student archived': 'bg-destructive/20 text-destructive',
-  'Payment recorded': 'bg-chart-1/20 text-chart-1',
-  'Attendance recorded': 'bg-chart-2/20 text-chart-2',
-  'Attendance edited': 'bg-chart-3/20 text-chart-3',
-  'Group created': 'bg-secondary',
-  'Group updated': 'bg-primary/20 text-primary',
-  'Discount added': 'bg-accent text-accent-foreground',
-  'Discount removed': 'bg-muted text-muted-foreground',
-  'Event created': 'bg-chart-4/20 text-chart-4',
+  'Student created': 'bg-green-500 text-green-900',
+  'Student updated': 'bg-blue-500 text-blue-900',
+  'Student archived': 'bg-red-500 text-red-900',
+  'Payment recorded': 'bg-emerald-500 text-emerald-900',
+  'Attendance recorded': 'bg-purple-500 text-purple-900',
+  'Attendance edited': 'bg-amber-500 text-amber-900',
+  'Group created': 'bg-red-500 text-cyan-900',
+  'Group updated': 'bg-indigo-500 text-indigo-900',
+  'Discount added': 'bg-pink-500 text-pink-900',
+  'Discount removed': 'bg-orange-500 text-orange-900',
+  'Event created': 'bg-violet-500 text-violet-900',
 };
 
 export function ActivityPanel() {
@@ -43,7 +43,7 @@ export function ActivityPanel() {
             <div className="space-y-2">
               {logs.map((log) => (
                 <div key={log.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30">
-                  <Badge className={ACTION_COLORS[log.action] || 'bg-muted'}>
+                  <Badge className={ACTION_COLORS[log.action] || 'bg-purple-100 text-purple-900'}>
                     {log.action}
                   </Badge>
                   <div className="flex-1 min-w-0">

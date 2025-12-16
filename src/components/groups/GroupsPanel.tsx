@@ -3,20 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Clock, Pause, Play, Pencil } from 'lucide-react';
+import { Plus, Users, Clock, Pause, Play, Pencil, Trash2 } from 'lucide-react';
 import { useGroups } from '@/hooks/useGroups';
 import { useTeachers } from '@/hooks/useTeachers';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function GroupsPanel() {
-  const { groups, createGroup, updateGroup } = useGroups();
+  const { groups, createGroup, updateGroup, deleteGroup, hardDeleteGroup } = useGroups();
   const { teachers } = useTeachers();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
+  const [groupToDelete, setGroupToDelete] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -83,6 +85,18 @@ export function GroupsPanel() {
     });
   };
 
+  const handleDeleteConfirmed = async () => {
+    if (!groupToDelete) return;
+    await deleteGroup.mutateAsync(groupToDelete.id);
+    setGroupToDelete(null);
+  };
+
+  const handleHardDelete = async () => {
+    if (!groupToDelete) return;
+    await hardDeleteGroup.mutateAsync(groupToDelete.id);
+    setGroupToDelete(null);
+  };
+
   const toggleDay = (day: string) => {
     setFormData(prev => ({
       ...prev,
@@ -119,6 +133,14 @@ export function GroupsPanel() {
                     onClick={() => togglePause(group)}
                   >
                     {group.is_paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8"
+                    onClick={() => setGroupToDelete(group)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -266,6 +288,32 @@ export function GroupsPanel() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              {groupToDelete ? (
+                <>
+                  Choose how you want to remove "{groupToDelete.name}":
+                  <br />
+                  This group currently has <b>{groupToDelete.studentCount || 0}</b> active students.
+                  <br />
+                  <b>Deactivate</b>: Hides the group and disables enrollments (keeps data).
+                  <br />
+                  <b>Delete Permanently</b>: Removes the group row. Database cascades will delete enrollments and attendance; payments will remain but unlink from the group.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setGroupToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirmed} className="bg-muted text-foreground hover:bg-muted/80">Deactivate</AlertDialogAction>
+            <AlertDialogAction onClick={handleHardDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete Permanently</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

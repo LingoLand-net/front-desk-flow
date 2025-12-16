@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Student, StudentWithDetails, StudentStatus } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
@@ -46,7 +47,34 @@ export function useStudents() {
         };
       });
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
+
+  useEffect(() => {
+    const channel = supabase.channel('realtime-students')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['students'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_groups' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['students'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['students'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'discounts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['students'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['students'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const createStudent = useMutation({
     mutationFn: async (data: { name: string; phone?: string; whatsapp?: string; notes?: string; entrance_fee_amount?: number }) => {

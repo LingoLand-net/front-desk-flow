@@ -7,14 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { User, BookOpen, CreditCard, UserCheck, Percent, DollarSign, Plus, Trash2 } from 'lucide-react';
+import { User, BookOpen, CreditCard, UserCheck, Percent, DollarSign, Plus, Trash2, Pencil, RotateCw } from 'lucide-react';
 import { StudentWithDetails, DiscountType, AttendanceStatus } from '@/types/database';
 import { useStudents } from '@/hooks/useStudents';
 import { useGroups } from '@/hooks/useGroups';
 import { useDiscounts } from '@/hooks/useDiscounts';
 import { useStudentGroups } from '@/hooks/useStudentGroups';
+import { usePayments } from '@/hooks/usePayments';
 import { format } from 'date-fns';
 
 interface StudentDrawerProps {
@@ -23,20 +25,23 @@ interface StudentDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProps) {
-  const { updateStudent } = useStudents();
+export function StudentDrawer({ student: initialStudent, open, onOpenChange }: StudentDrawerProps) {
+  const { updateStudent, refetch: refetchStudents, students } = useStudents();
   const { groups } = useGroups();
   const { addDiscount, removeDiscount } = useDiscounts();
   const { enrollStudent, unenrollStudent } = useStudentGroups();
+  const { updatePayment, deletePayment } = usePayments();
+  const [paymentsRefreshing, setPaymentsRefreshing] = useState(false);
   
   const [newDiscount, setNewDiscount] = useState({
     type: 'special' as DiscountType,
-    isPercentage: true,
+    isPercentage: false,
     value: 0,
     notes: '',
   });
   const [selectedGroupToEnroll, setSelectedGroupToEnroll] = useState<string>('');
 
+  const student = students.find(s => s.id === initialStudent?.id) || initialStudent;
   if (!student) return null;
 
   const activeGroups = student.groups?.filter(sg => sg.is_active) || [];
@@ -281,13 +286,22 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
                 
                 <div className="flex gap-2 items-end">
                   <div className="flex-1 space-y-2">
-                    <Label>Value</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newDiscount.value}
-                      onChange={(e) => setNewDiscount({ ...newDiscount, value: parseFloat(e.target.value) || 0 })}
-                    />
+                    <Label>{newDiscount.isPercentage ? 'Percentage' : 'Amount'}</Label>
+                    <div className="relative">
+                      {!newDiscount.isPercentage && (
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      )}
+                      <Input
+                        type="number"
+                        min={0}
+                        max={newDiscount.isPercentage ? 100 : undefined}
+                        step={newDiscount.isPercentage ? 1 : 0.01}
+                        value={newDiscount.value}
+                        onChange={(e) => setNewDiscount({ ...newDiscount, value: parseFloat(e.target.value) || 0 })}
+                        className={newDiscount.isPercentage ? '' : 'pl-6'}
+                        placeholder={newDiscount.isPercentage ? 'e.g. 10 (%)' : 'e.g. 25.00'}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 pb-2">
                     <Checkbox 
@@ -295,7 +309,7 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
                       checked={newDiscount.isPercentage}
                       onCheckedChange={(checked) => setNewDiscount({ ...newDiscount, isPercentage: !!checked })}
                     />
-                    <Label htmlFor="isPercentage">%</Label>
+                    <Label htmlFor="isPercentage">Use %</Label>
                   </div>
                 </div>
                 
@@ -359,8 +373,19 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
           {/* Payments Tab */}
           <TabsContent value="payments" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm">Payment History</CardTitle>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={async () => {
+                    setPaymentsRefreshing(true);
+                    try { await refetchStudents(); } finally { setPaymentsRefreshing(false); }
+                  }}
+                  title="Reload payments"
+                >
+                  <RotateCw className={`h-4 w-4 ${paymentsRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
               </CardHeader>
               <CardContent>
                 {!student.payments || student.payments.length === 0 ? (
@@ -372,6 +397,7 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
                         <TableHead>Date</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="w-[110px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -380,6 +406,18 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
                           <TableCell>{format(new Date(payment.payment_date), 'PP')}</TableCell>
                           <TableCell className="capitalize">{payment.payment_type.replace('_', ' ')}</TableCell>
                           <TableCell className="text-right font-medium">${Number(payment.amount).toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <EditPaymentButton studentId={student.id} payment={payment} onUpdated={() => {}} />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => deletePayment.mutate(payment.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -391,5 +429,131 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
         </Tabs>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function EditPaymentButton({ studentId, payment, onUpdated }: { studentId: string; payment: any; onUpdated: () => void }) {
+  const { students } = useStudents();
+  const { updatePayment } = usePayments();
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    payment_type: payment.payment_type as 'tuition' | 'partial' | 'entrance_fee' | 'event',
+    group_id: payment.group_id || '',
+    amount: Number(payment.amount) || 0,
+    sessions_purchased: Number(payment.sessions_purchased || 0),
+    notes: payment.notes || '',
+  });
+
+  const selectedStudent = students.find(s => s.id === studentId);
+  const studentGroups = selectedStudent?.groups?.filter(g => g.is_active).map(sg => sg.group) || [];
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updatePayment.mutateAsync({
+      id: payment.id,
+      payment_type: formData.payment_type,
+      group_id: formData.payment_type === 'tuition' ? (formData.group_id || null) : null,
+      amount: formData.amount,
+      sessions_purchased: formData.payment_type === 'tuition' ? formData.sessions_purchased : 0,
+      notes: formData.notes || null,
+    });
+    setOpen(false);
+    onUpdated();
+  };
+
+  return (
+    <>
+      <Button size="icon" variant="ghost" onClick={() => setOpen(true)}>
+        <Pencil className="h-4 w-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Payment</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type *</Label>
+              <Select 
+                value={formData.payment_type}
+                onValueChange={(value: any) => setFormData({ ...formData, payment_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tuition">Tuition</SelectItem>
+                  <SelectItem value="partial">Partial Payment</SelectItem>
+                  <SelectItem value="entrance_fee">Entrance Fee</SelectItem>
+                  <SelectItem value="event">Event / Workshop</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.payment_type === 'tuition' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Group</Label>
+                  <Select 
+                    value={formData.group_id}
+                    onValueChange={(value) => setFormData({ ...formData, group_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {studentGroups.map((group: any) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sessions Purchased</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={formData.sessions_purchased}
+                    onChange={(e) => setFormData({ ...formData, sessions_purchased: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label>Amount *</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Payment notes..."
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updatePayment.isPending}>
+                {updatePayment.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

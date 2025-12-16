@@ -90,6 +90,130 @@ export function usePayments() {
     },
   });
 
+  const updatePayment = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<Payment> & { id: string }) => {
+      // Fetch existing payment
+      const { data: oldPayment } = await supabase
+        .from('payments')
+        .select()
+        .eq('id', id)
+        .single();
+
+      const { data: payment, error } = await supabase
+        .from('payments')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Adjust sessions if tuition payment changed
+      try {
+        if (oldPayment?.payment_type === 'tuition' && oldPayment.group_id && oldPayment.student_id && oldPayment.sessions_purchased > 0) {
+          const { data: existingSG } = await supabase
+            .from('student_groups')
+            .select('sessions_total')
+            .eq('student_id', oldPayment.student_id)
+            .eq('group_id', oldPayment.group_id)
+            .single();
+          if (existingSG) {
+            await supabase
+              .from('student_groups')
+              .update({ sessions_total: Math.max(0, existingSG.sessions_total - oldPayment.sessions_purchased) })
+              .eq('student_id', oldPayment.student_id)
+              .eq('group_id', oldPayment.group_id);
+          }
+        }
+
+        if (payment?.payment_type === 'tuition' && payment.group_id && payment.student_id && payment.sessions_purchased > 0) {
+          const { data: existingSG2 } = await supabase
+            .from('student_groups')
+            .select('sessions_total')
+            .eq('student_id', payment.student_id)
+            .eq('group_id', payment.group_id)
+            .single();
+          if (existingSG2) {
+            await supabase
+              .from('student_groups')
+              .update({ sessions_total: existingSG2.sessions_total + payment.sessions_purchased })
+              .eq('student_id', payment.student_id)
+              .eq('group_id', payment.group_id);
+          }
+        }
+      } catch (e) {
+        // Best-effort session adjustment; continue even if not found
+      }
+
+      await supabase.from('activity_logs').insert({
+        action: 'Payment updated',
+        entity_type: 'payment',
+        entity_id: payment.id,
+        old_value: oldPayment as any,
+        new_value: data as any,
+      });
+
+      return payment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      toast({ title: 'Payment updated successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error updating payment', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deletePayment = useMutation({
+    mutationFn: async (id: string) => {
+      // Fetch existing payment for side effects and logging
+      const { data: oldPayment } = await supabase
+        .from('payments')
+        .select()
+        .eq('id', id)
+        .single();
+
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      // Reverse sessions if tuition
+      try {
+        if (oldPayment?.payment_type === 'tuition' && oldPayment.group_id && oldPayment.student_id && oldPayment.sessions_purchased > 0) {
+          const { data: existingSG } = await supabase
+            .from('student_groups')
+            .select('sessions_total')
+            .eq('student_id', oldPayment.student_id)
+            .eq('group_id', oldPayment.group_id)
+            .single();
+          if (existingSG) {
+            await supabase
+              .from('student_groups')
+              .update({ sessions_total: Math.max(0, existingSG.sessions_total - oldPayment.sessions_purchased) })
+              .eq('student_id', oldPayment.student_id)
+              .eq('group_id', oldPayment.group_id);
+          }
+        }
+      } catch (e) {}
+
+      await supabase.from('activity_logs').insert({
+        action: 'Payment deleted',
+        entity_type: 'payment',
+        old_value: oldPayment as any,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      toast({ title: 'Payment deleted successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error deleting payment', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const getFinancialSummary = () => {
     const payments = paymentsQuery.data || [];
     const now = new Date();
@@ -113,6 +237,8 @@ export function usePayments() {
     isLoading: paymentsQuery.isLoading,
     error: paymentsQuery.error,
     createPayment,
+    updatePayment,
+    deletePayment,
     getFinancialSummary,
     refetch: paymentsQuery.refetch,
   };
