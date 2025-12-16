@@ -67,6 +67,12 @@ export function RecordPaymentDialog({ open, onOpenChange, preSelectedStudentId }
     e.preventDefault();
     if (!formData.student_id || formData.amount <= 0) return;
 
+    // Guard: prevent charging entrance fee twice
+    if (formData.payment_type === 'entrance_fee' && selectedStudent?.entrance_fee_paid) {
+      alert(`⚠️ Student "${selectedStudent.name}" has already paid the entrance fee. This charge is not allowed.`);
+      return;
+    }
+
     await createPayment.mutateAsync({
       student_id: formData.student_id,
       group_id: formData.payment_type === 'tuition' ? formData.group_id || undefined : undefined,
@@ -164,6 +170,12 @@ export function RecordPaymentDialog({ open, onOpenChange, preSelectedStudentId }
                 />
               </div>
             </>
+          )}
+
+          {formData.payment_type === 'entrance_fee' && selectedStudent?.entrance_fee_paid && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+              ✗ {selectedStudent.name} has already paid the entrance fee.
+            </div>
           )}
 
           <div className="space-y-2">

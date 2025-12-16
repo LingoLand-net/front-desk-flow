@@ -27,7 +27,8 @@ export function useGroups() {
 
       return (groups || []).map((group: any) => ({
         ...group,
-        studentCount: group.student_groups?.filter((sg: any) => sg.is_active && !sg.student?.is_deleted).length || 0,
+        students: group.student_groups,
+        studentCount: group.student_groups?.filter((sg: any) => sg.is_active && sg.student && !sg.student.is_deleted).length || 0,
       }));
     },
   });

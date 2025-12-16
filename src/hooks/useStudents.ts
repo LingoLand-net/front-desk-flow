@@ -18,7 +18,7 @@ export function useStudents() {
             *,
             group:groups (*)
           ),
-          discounts (*),
+          discounts!student_id (*),
           payments (*),
           attendance (*)
         `)
@@ -39,6 +39,7 @@ export function useStudents() {
 
         return {
           ...student,
+          groups: student.student_groups,
           totalPaid,
           remainingSessions,
           attendancePercentage,

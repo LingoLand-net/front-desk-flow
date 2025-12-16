@@ -24,11 +24,12 @@ const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
 ];
 
 export function EventsPanel() {
-  const { events, createEvent, deleteEvent } = useEvents();
+  const { events, createEvent, updateEvent, deleteEvent } = useEvents();
   const { groups } = useGroups();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -36,7 +37,7 @@ export function EventsPanel() {
     event_date: '',
     start_time: '',
     end_time: '',
-    group_id: '',
+    group_id: 'all',
     is_paid: false,
     fee_amount: 0,
     affects_sessions: false,
@@ -51,9 +52,15 @@ export function EventsPanel() {
     return events.filter((event: any) => isSameDay(new Date(event.event_date), date));
   };
 
+  const getGroupsForDay = (date: Date) => {
+    const dayName = format(date, 'EEEE');
+    return groups.filter((g: any) => g.is_active !== false && !g.is_paused && Array.isArray(g.schedule_days) && g.schedule_days.includes(dayName));
+  };
+
   const handleDayClick = (date: Date) => {
     setSelectedDate(format(date, 'yyyy-MM-dd'));
     setFormData(prev => ({ ...prev, event_date: format(date, 'yyyy-MM-dd') }));
+    setEditingEvent(null);
     setShowAddDialog(true);
   };
 
@@ -61,18 +68,24 @@ export function EventsPanel() {
     e.preventDefault();
     if (!formData.title || !formData.event_date) return;
 
-    await createEvent.mutateAsync({
+    const payload = {
       title: formData.title,
       event_type: formData.event_type,
       event_date: formData.event_date,
       start_time: formData.start_time || undefined,
       end_time: formData.end_time || undefined,
-      group_id: formData.group_id || undefined,
+      group_id: !formData.group_id || formData.group_id === 'all' ? undefined : formData.group_id,
       is_paid: formData.is_paid,
       fee_amount: formData.fee_amount,
       affects_sessions: formData.affects_sessions,
       notes: formData.notes || undefined,
-    });
+    };
+
+    if (editingEvent) {
+      await updateEvent.mutateAsync({ id: editingEvent.id, ...payload });
+    } else {
+      await createEvent.mutateAsync(payload);
+    }
 
     setFormData({
       title: '',
@@ -80,13 +93,14 @@ export function EventsPanel() {
       event_date: '',
       start_time: '',
       end_time: '',
-      group_id: '',
+      group_id: 'all',
       is_paid: false,
       fee_amount: 0,
       affects_sessions: false,
       notes: '',
     });
     setShowAddDialog(false);
+    setEditingEvent(null);
   };
 
   const getEventColor = (type: EventType) => {
@@ -162,9 +176,33 @@ export function EventsPanel() {
                     {dayEvents.slice(0, 2).map((event: any) => (
                       <div
                         key={event.id}
-                        className={`text-xs p-1 rounded truncate ${getEventColor(event.event_type)}`}
+                        className={`text-xs p-1 rounded truncate ${getEventColor(event.event_type)} cursor-pointer`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Open edit dialog prefilled
+                          setEditingEvent(event);
+                          setFormData({
+                            title: event.title || '',
+                            event_type: event.event_type,
+                            event_date: format(new Date(event.event_date), 'yyyy-MM-dd'),
+                            start_time: event.start_time || '',
+                            end_time: event.end_time || '',
+                            group_id: event.group_id || 'all',
+                            is_paid: !!event.is_paid,
+                            fee_amount: Number(event.fee_amount || 0),
+                            affects_sessions: !!event.affects_sessions,
+                            notes: event.notes || '',
+                          });
+                          setShowAddDialog(true);
+                        }}
                       >
                         {event.title}
+                      </div>
+                    ))}
+                    {/* Active group schedules */}
+                    {getGroupsForDay(date).slice(0, 2).map((g: any) => (
+                      <div key={`g-${g.id}`} className="text-[10px] px-1 py-0.5 rounded bg-secondary/20 text-secondary-foreground/90 truncate">
+                        {g.name}{g.schedule_time ? ` @ ${g.schedule_time}` : ''}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
@@ -223,7 +261,7 @@ export function EventsPanel() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Event</DialogTitle>
+            <DialogTitle>{editingEvent ? 'Edit Event' : 'Add Event'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -295,7 +333,7 @@ export function EventsPanel() {
                   <SelectValue placeholder="All groups" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All groups</SelectItem>
+                  <SelectItem value="all">All groups</SelectItem>
                   {groups.map(group => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
@@ -350,8 +388,8 @@ export function EventsPanel() {
               <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createEvent.isPending}>
-                {createEvent.isPending ? 'Adding...' : 'Add Event'}
+              <Button type="submit" disabled={createEvent.isPending || updateEvent.isPending}>
+                {editingEvent ? (updateEvent.isPending ? 'Saving...' : 'Save Changes') : (createEvent.isPending ? 'Adding...' : 'Add Event')}
               </Button>
             </DialogFooter>
           </form>

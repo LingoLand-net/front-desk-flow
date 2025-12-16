@@ -185,12 +185,12 @@ export function StudentTable({ students, searchQuery, onSelectStudent }: Student
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
-                      {student.groups?.filter(g => g.is_active).map(sg => (
+                      {student.groups?.filter(sg => sg.is_active && sg.group).map(sg => (
                         <Badge key={sg.id} variant="outline" className="text-xs">
                           {sg.group.name}
                         </Badge>
                       ))}
-                      {(!student.groups || student.groups.filter(g => g.is_active).length === 0) && (
+                      {(!student.groups || student.groups.filter(sg => sg.is_active && sg.group).length === 0) && (
                         <span className="text-muted-foreground text-sm">No groups</span>
                       )}
                     </div>

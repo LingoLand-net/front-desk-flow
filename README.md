@@ -1,73 +1,133 @@
-# Welcome to your Lovable project
+A summary of what we're building:
 
-## Project info
+- **Small center, single user** - No complex authentication needed, just a simple system
+- **Soft & Friendly design** - Warm colors, approachable UI for non-technical user
+- **Full System at Once** - Complete feature set as specified
+- **Desktop focused, English UI** - Optimized for front desk computer use
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Based on your detailed requirements, here's my proposed plan:
 
-## How can I edit this code?
+## 🎓 Language Center Front Desk Dashboard
 
-There are several ways of editing your application.
+### Overview
+A complete digital management system replacing paper forms, designed specifically for a non-technical desk lady with a warm, friendly interface and minimal learning curve.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Phase 1: Core Foundation
 
-Changes made via Lovable will be committed automatically to this repo.
+#### 🏠 Main Dashboard
+- **Smart Search Bar** - Search students by name, phone, or group with instant results
+- **Quick Action Buttons** - Large, colorful buttons for daily tasks (Add Student, Record Payment, Take Attendance)
+- **Alert Widgets** - Visual cards showing:
+  - 🔴 Overdue payments count
+  - 🟡 Students with low remaining sessions
+  - ⚪ Today's attendance not yet recorded
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Phase 2: Student Management
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+#### 📋 Student Table (Main View)
+- Inline editable fields (click to edit)
+- Color-coded status badges (Active/Paused/Dropped)
+- Auto-calculated: Remaining sessions, Attendance %, Payment status
+- Quick filters sidebar (by status, payment, group, sessions)
+- Soft delete only (archive, never lose data)
 
-Follow these steps:
+#### 👤 Student Profile Drawer (Slide-in Panel)
+Opens from the right when clicking a student row:
+- **Personal Info Tab** - Name, contact, enrollment date
+- **Discounts Tab** - Checkboxes for discount types, percentage/fixed amount input
+- **Groups Tab** - Enrolled groups with session usage, ability to move between groups
+- **Attendance Tab** - Session history with Present/Absent/Excused, searchable by date
+- **Payments Tab** - Full payment history including entrance fee, tuition, events
+- **Entrance Fee Section** - One-time fee tracking with paid/unpaid status
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Phase 3: Attendance System
 
-# Step 3: Install the necessary dependencies.
-npm i
+#### ✅ Attendance Recording
+- Group-based attendance view
+- One-click buttons: ✓ Present | ✗ Absent | ⚠ Excused
+- Auto-updates remaining sessions and attendance %
+- Past attendance editable with mandatory reason field
+- All changes logged in activity history
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+### Phase 4: Payments & Financials
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+#### 💳 Payment System
+- Support for: Tuition, Partial payments, Entrance fees, Event payments
+- Automatic discount application
+- Entrance fee charged once only (system prevents duplicates)
+- Overdue status triggers based on configurable rules
 
-**Use GitHub Codespaces**
+#### 📊 Financial Overview Widget
+- Total collected this month
+- Pending payments
+- Overdue amounts
+- Discounts given summary
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+### Phase 5: Groups & Events
 
-This project is built with:
+#### 👥 Group Management
+- Group cards showing: Name, Language, Teacher, Schedule, Student count
+- Add/Edit groups with session cycle settings
+- Move students between groups easily
+- Pause group feature (for holidays)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+#### 📅 Events & Calendar
+- Event types: Holiday, Extra class, Rescheduled session, Paid events
+- Weekly/Monthly calendar view
+- Events automatically affect attendance and payments
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Phase 6: Admin Features
 
-## Can I connect a custom domain to my Lovable project?
+#### 📝 Activity Log
+- Complete audit trail of all actions
+- Tracks: Who, What, When for every change
+- Searchable and filterable
 
-Yes, you can!
+#### 📤 Exports & Reports
+- Student list export
+- Attendance reports
+- Payment/Finance reports
+- Excel and PDF formats
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Database Design (Supabase)
+Clean, normalized schema:
+- `students` - Core student data
+- `groups` - Group definitions with schedule
+- `student_groups` - Many-to-many enrollment
+- `attendance` - Session attendance records
+- `payments` - All payment transactions
+- `discounts` - Applied discounts
+- `events` - Calendar events
+- `teachers` - Teacher info
+- `activity_logs` - Complete audit trail
+
+---
+
+### Design Highlights
+- 🎨 **Soft & Friendly Theme** - Warm peach/coral accents, rounded corners, gentle shadows
+- 📱 **Large Click Targets** - Big buttons for fast daily operations
+- 🔔 **Visual Feedback** - Toast notifications for all actions
+- 💾 **Auto-save** - No "Save" buttons needed, changes apply immediately
+- ⚡ **Inline Editing** - Click any field to edit directly in the table
+
+This plan covers all your requirements in a logical build order. The system will use **Supabase** for the backend (database, real-time updates, and data persistence) to ensure no data is ever lost.
+
+Does this plan align with your vision? Would you like me to adjust any priorities, add more detail to any section, or modify the approach?
+
+Implement the plan
+Explain database schema in detail
+Describe screen layouts

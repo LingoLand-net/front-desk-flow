@@ -39,9 +39,9 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
 
   if (!student) return null;
 
-  const activeGroups = student.groups?.filter(g => g.is_active) || [];
+  const activeGroups = student.groups?.filter(sg => sg.is_active) || [];
   const activeDiscounts = student.discounts?.filter(d => d.is_active) || [];
-  const enrolledGroupIds = activeGroups.map(g => g.group_id);
+  const enrolledGroupIds = activeGroups.map(sg => sg.group_id);
   const availableGroups = groups.filter(g => !enrolledGroupIds.includes(g.id));
 
   const handleEnrollStudent = async () => {
@@ -181,7 +181,7 @@ export function StudentDrawer({ student, open, onOpenChange }: StudentDrawerProp
                   activeGroups.map(sg => (
                     <div key={sg.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                       <div>
-                        <div className="font-medium">{sg.group.name}</div>
+                        <div className="font-medium">{sg.group?.name || 'Unknown Group'}</div>
                         <div className="text-sm text-muted-foreground">
                           {sg.sessions_used} / {sg.sessions_total} sessions used
                         </div>

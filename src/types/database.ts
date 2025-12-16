@@ -123,7 +123,8 @@ export interface ActivityLog {
 
 // Extended types with relations
 export interface StudentWithDetails extends Student {
-  groups?: (StudentGroup & { group: Group })[];
+  student_groups?: (StudentGroup & { group: Group })[];
+  groups?: (StudentGroup & { group: Group })[]; // Alias for student_groups for backwards compatibility
   discounts?: Discount[];
   payments?: Payment[];
   attendance?: Attendance[];

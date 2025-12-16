@@ -21,7 +21,7 @@ export function GroupsPanel() {
   const [formData, setFormData] = useState({
     name: '',
     language: '',
-    teacher_id: '',
+    teacher_id: 'none',
     schedule_days: [] as string[],
     schedule_time: '',
     sessions_per_cycle: 8,
@@ -32,7 +32,7 @@ export function GroupsPanel() {
     setFormData({
       name: '',
       language: '',
-      teacher_id: '',
+      teacher_id: 'none',
       schedule_days: [],
       schedule_time: '',
       sessions_per_cycle: 8,
@@ -49,12 +49,12 @@ export function GroupsPanel() {
       await updateGroup.mutateAsync({
         id: editingGroup.id,
         ...formData,
-        teacher_id: formData.teacher_id || undefined,
+        teacher_id: formData.teacher_id === 'none' ? undefined : formData.teacher_id,
       });
     } else {
       await createGroup.mutateAsync({
         ...formData,
-        teacher_id: formData.teacher_id || undefined,
+        teacher_id: formData.teacher_id === 'none' ? undefined : formData.teacher_id,
       });
     }
 
@@ -67,7 +67,7 @@ export function GroupsPanel() {
     setFormData({
       name: group.name,
       language: group.language,
-      teacher_id: group.teacher_id || '',
+      teacher_id: group.teacher_id || 'none',
       schedule_days: group.schedule_days || [],
       schedule_time: group.schedule_time || '',
       sessions_per_cycle: group.sessions_per_cycle,
@@ -198,7 +198,7 @@ export function GroupsPanel() {
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No teacher assigned</SelectItem>
+                  <SelectItem value="none">No teacher assigned</SelectItem>
                   {teachers.map(teacher => (
                     <SelectItem key={teacher.id} value={teacher.id}>
                       {teacher.name}
